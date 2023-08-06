@@ -53,6 +53,9 @@ def data_grabber():
     # Extracting the most recent data set
     most_recent_values = [value for value in rows[-1][1:] if value != 'N/A']
 
+    # Convert the most revent data set to numbers
+    most_recent_values = [float(element) for element in most_recent_values]
+
     return data_date, header_values_in_years, most_recent_values
 
 # Mapping of time periods to their corresponding values in years
@@ -66,16 +69,15 @@ def get_period_value(period):
         return None  # Return None for unexpected formats
 
 def plot_yield_curve(headers, date, data):
-    print(headers)
-    print(data)
-    print(date)
-    plt.figure(figsize=(10, 7.5))
-    plt.plot(headers, data, marker='o')
-    plt.xlabel("Maturity (Years)")
-    plt.ylabel("Yield")
-    plt.title(f"US Treasury Yield Curve Rates on {date}")
-    plt.grid(True)
-    plt.show()
+    with plt.style.context('/Users/collin/Documents/GitHub/yield_curve_poster/rose-pine.mplstyle'):
+        plt.figure(figsize=(6, 3.5))
+        plt.plot(headers, data, marker = '.')
+        plt.xlabel("Maturity (Years)")
+        plt.ylabel("Yield")
+        plt.title(f"US Treasury Yield Curve Rates on {date}")
+        plt.savefig('/Users/collin/Documents/GitHub/yield_curve_poster/yield_curve.png', dpi=300, bbox_inches='tight')  # Adjust the dpi as needed
+        plt.grid(True)
+        plt.show()
 
 def main():
     date, headers, data = data_grabber()
