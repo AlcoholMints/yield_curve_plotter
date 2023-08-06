@@ -3,7 +3,6 @@
   # posts the yield curve to instagram
   # Looks good
   # tells you how many days the 3mo to 30yrs has been inverted
-# ! is totally broken, I don't think it's web scraping right
 
 import requests
 from bs4 import BeautifulSoup
@@ -18,30 +17,60 @@ def data_grabber():
     # Create a URL object
     url = f'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value_month={page}'
 
-    # grab table from the website
     response = requests.get(url)
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html5lib')
-        table = soup.find("table", class_="t-chart")
-        rows = table.find_all("tr")
-        headers = [cell.get_text() for cell in rows[0].find_all("th")]
-        data = {}
-        for row in rows[1:]:
-            cells = row.find_all("td")
-            date = cells[0].get_text()
-            values = [float(cell.get_text()) for cell in cells[1:]]
-            data[date] = values
-        return headers, data
+    # convert to beautiful soup 
+    soup = BeautifulSoup(response.content, 'html.parser') 
+    # find table
+    table_element = soup.find('table')
+
+    # initialize lists to stoe the table headers and rows
+    headers = []
+    rows = []
+
+    # Extract table headers (table column names)
+    header_row = table_element.find('thead').find('tr')
+    for header in header_row.find_all('th'):
+        headers.append(header.text.strip())
+
+    # Extract table rows (data rows)
+    data_rows = table_element.find('tbody').find_all('tr')
+    for row in data_rows:
+        row_data = [cell.text.strip() for cell in row.find_all('td')]
+        rows.append(row_data)
+
+    # Data date
+    data_date = rows[-1][0]
+
+    # Create a new headers list without unused headers
+    headers_list = headers[:0] + headers[10:]
+
+    # Convert time periods to number values in years
+    header_values_in_years = [get_period_value(header) for header in headers_list]
+
+    # Filter out None values for unexpected formats, if any
+    header_values_in_years = [value for value in header_values_in_years if value is not None]
+
+    # Extracting the most recent data set
+    most_recent_values = [value for value in rows[-1][1:] if value != 'N/A']
+
+    return data_date, header_values_in_years, most_recent_values
+
+# Mapping of time periods to their corresponding values in years
+def get_period_value(period):
+    # Check if the period contains 'Mo' for months or 'Yr' for years
+    if 'Mo' in period:
+        return float(period.split()[0]) / 12
+    elif 'Yr' in period:
+        return float(period.split()[0])
     else:
-        raise ValueError("Failed to fetch data from the website.")
+        return None  # Return None for unexpected formats
 
-def extract_most_recent_day(data):
-  most_recent_day = max(data.keys())
-  return most_recent_day, data[most_recent_day]
-
-def plot_yield_curve(headers, date, values):
-    plt.figure(figsize=(10, 6))
-    plt.plot(headers[1:], values, marker='o')
+def plot_yield_curve(headers, date, data):
+    print(headers)
+    print(data)
+    print(date)
+    plt.figure(figsize=(10, 7.5))
+    plt.plot(headers, data, marker='o')
     plt.xlabel("Maturity (Years)")
     plt.ylabel("Yield")
     plt.title(f"US Treasury Yield Curve Rates on {date}")
@@ -49,9 +78,8 @@ def plot_yield_curve(headers, date, values):
     plt.show()
 
 def main():
-    headers, data = data_grabber()
-    date, values = extract_most_recent_day(data)
-    plot_yield_curve(headers, date, values)
+    date, headers, data = data_grabber()
+    plot_yield_curve(headers, date, data)
 
 if __name__ == "__main__":
     main()
