@@ -8,8 +8,6 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 import matplotlib.pyplot as plt
-import os
-from dotenv import load_dotenv
 
 def data_grabber():
     # time in YYYYMM form for the url
@@ -80,57 +78,10 @@ def plot_yield_curve(headers, date, data):
         plt.title(f"US Treasury Yield Curve Rates on {date}")
         plt.savefig('yield_curve.png', dpi=1200, bbox_inches='tight')  # Adjust the dpi as needed
 
-def post_to_insta():
-    load_dotenv()
-    # Initialize the login data
-    access_token = os.getenv('ACCESS_TOKEN')
-    business_account_id = os.getenv('BUSINESS_ACCOUNT_ID')
-    yield_curve_file_path = 'yield_curve.png'
-
-    def upload_media_to_instagram(access_token, business_account_id, media_file_path):
-        url = f"https://graph.facebook.com/{business_account_id}/media"
-
-        files = {
-            'media_file': open(media_file_path, 'rb'),
-        }
-
-        params = {
-            'access_token': access_token,
-            'image_url': 'IMAGE_URL_PLACEHOLDER',  # You can also use 'video_url' for video files
-        }
-
-        response = requests.post(url, files=files, params=params)
-        return response.json()
-    
-    def publish_media_to_instagram(access_token, business_account_id, media_id):
-        url = f"https://graph.facebook.com/{business_account_id}/media_publish"
-
-        params = {
-            'access_token': access_token,
-            'creation_id': media_id,
-        }
-
-        response = requests.post(url, params=params)
-        return response.json()
-
-    try:
-        # Step 1: Upload the media file
-        upload_response = upload_media_to_instagram(access_token, business_account_id, yield_curve_file_path)
-        media_id = upload_response.get('id')
-
-        if media_id:
-            # Step 2: Publish the media to your business account
-            publish_response = publish_media_to_instagram(access_token, business_account_id, media_id)
-            print("Media posted successfully!")
-        else:
-            print("Media upload failed.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
 def main():
     date, headers, data = data_grabber()
     plot_yield_curve(headers, date, data)
-    post_to_insta()
 
 if __name__ == "__main__":
     main()
